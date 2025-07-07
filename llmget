@@ -1,0 +1,49 @@
+#!/bin/bash
+
+tmpfile="/tmp/llmget.context"
+echo "" > "$tmpfile"
+
+# Write project tree at the beginning (including hidden files)
+echo "Project Tree:" >> "$tmpfile"
+tree -a -f --noreport -I '.git' >> "$tmpfile"  # -a shows hidden files, -I excludes .git
+echo "" >> "$tmpfile"
+
+# File extensions to exclude (case-insensitive)
+blacklist_ext="png|jpg|jpeg|gif|bmp|pdf|zip|tar|gz|bin|exe|so|o|a|pyc|class|jar|dll|ico"
+tree -a -fQi --noreport -I '.git' | tail -n +2 | while IFS= read -r line; do
+        path="${line//\"/}"  # Remove quotes
+        # Skip directories
+        [[ "$path" == */ ]] && continue
+        # Skip if file is not readable
+        [ ! -r "$path" ] && continue
+        # Skip _templ.go files
+        [[ "$(basename "$path")" == *_templ.go ]] && continue
+        # Skip binary files using MIME type detection
+        mime_type=$(file -b --mime-type "$path")
+        [[ "$mime_type" != text/* ]] && continue
+        # Skip blacklisted file extensions
+        ext=$(awk -F. '{if (NF>1) print tolower($NF)}' <<< "$path")
+        [[ -n "$ext" && "$ext" =~ ^($blacklist_ext)$ ]] && continue
+
+        # Get extension for code block (handle dotfiles properly)
+        if [[ "$(basename "$path")" =~ ^\..* ]]; then
+            # For dotfiles, use the entire filename after the dot as extension
+            code_ext=$(basename "$path" | cut -d'.' -f2-)
+        else
+            # For regular files, use the last extension
+            code_ext=$(awk -F. '{if (NF>1) print tolower($NF)}' <<< "$path")
+        fi
+
+        # Process the file
+        {
+                echo
+                echo "file: $path"
+                echo
+                echo '```'"$code_ext"
+                cat "$path"
+                echo
+                echo '```'
+                echo
+        } >> "$tmpfile"
+done
+cat $tmpfile | wl-copy
