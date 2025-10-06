@@ -1,7 +1,7 @@
 #!/bin/sh
 
-path=/usr/local/bin
+path=~/.local/bin
 
-doas cp llmget $path
-doas chmod u+x $path/llmget
-doas chown $USER:$USER $path/llmget
+sudo cp llmget $path
+sudo chmod u+x $path/llmget
+sudo chown $USER:$USER $path/llmget
