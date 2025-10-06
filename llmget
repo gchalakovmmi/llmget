@@ -34,7 +34,8 @@ tree -a -fQi --noreport -I '.git' | tail -n +2 | while IFS= read -r line; do
                 echo "file: \`$path\`"
                 echo
                 echo '```'"$code_ext"
-                cat "$path"
+                # Replace tabs with 4 spaces
+                expand -t 4 "$path"
                 echo
                 echo '```'
                 echo
